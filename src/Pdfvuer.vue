@@ -17,6 +17,7 @@ import {
   DefaultTextLayerFactory,
   PDFLinkService,
   PDFPageView,
+  PDFViewer,
   EventBus,
   PDFFindController
 } from "pdfjs-dist/web/pdf_viewer.js";
@@ -119,7 +120,8 @@ export default {
     var self = this;
     if (!isPDFDocumentLoadingTask(self.internalSrc)) {
       self.internalSrc = createLoadingTask(self.internalSrc);
-      self.$emit("loading", true);
+      self.loading = true;
+      // self.$emit("loading", true);
     }
 
     var container = this.$refs.container;
@@ -127,32 +129,22 @@ export default {
     const eventBus = new EventBus();
 
     // (Optionally) enable hyperlinks within PDF files.
-    var pdfLinkService = new PDFLinkService({ eventBus: eventBus });
+    const pdfLinkService = new PDFLinkService({ eventBus: eventBus });
 
     self.findController = new PDFFindController({
       eventBus: eventBus,
       linkService: pdfLinkService
     });
 
-    // self.pdf = pdfSinglePageViewer;
-    // console.log(self.pdf.currentScaleValue);
-    // pdfLinkService.setViewer(self.pdf);
-    //
-    // // (Optionally) enable find controller.
-    // var pdfFindController = new PDFFindController({
-    //   pdfViewer: self.pdf,
-    // });
-    // self.pdf.setFindController(pdfFindController);
-    //
-    // container.addEventListener('pagesinit', function () {
-    //   // We can use pdfSinglePageViewer now, e.g. let's change default scale.
-    //   self.pdf.currentScaleValue = 'page-width';
-    //
-    //   if (SEARCH_FOR) { // We can try search for things
-    //     pdfFindController.executeCommand('find', {query: SEARCH_FOR});
-    //   }
-    // });
-    //
+    self.pdfViewer = new PDFViewer({
+      container: container,
+      eventBus: eventBus,
+      linkService: pdfLinkService,
+      findController: self.findController
+    });
+
+    pdfLinkService.setViewer(self.pdfViewer);
+
     let annotationLayer = undefined,
       textLayer = undefined;
     if (self.annotation) {
@@ -162,38 +154,59 @@ export default {
       textLayer = new DefaultTextLayerFactory();
     }
 
+    eventBus.on("pagesinit", function() {
+      // We can use pdfViewer now, e.g. let's change default scale.
+      self.pdfViewer.currentScaleValue = "page-width";
+
+      // We can try searching for things.
+      // if (SEARCH_FOR) {
+      //   pdfFindController.executeCommand("find", { query: SEARCH_FOR });
+      // }
+    });
+
     self.internalSrc
       .then(function(pdfDocument) {
         // Document loaded, retrieving the page.
         self.pdf = pdfDocument;
-        return pdfDocument.getPage(self.page);
-      })
-      .then(function(pdfPage) {
-        // Creating the page view with default parameters.
-        self.pdfViewer = new PDFPageView({
-          container: container,
-          id: self.page,
-          scale: 1,
-          defaultViewport: pdfPage.getViewport({ scale: 1 }),
-          eventBus: eventBus,
-          // We can enable text/annotations layers, if needed
-          textLayerFactory: textLayer,
-          annotationLayerFactory: annotationLayer
-        });
-        // Associates the actual page with the view, and drawing it
-        self.pdfViewer.setPdfPage(pdfPage);
-        pdfLinkService.setViewer(self.pdfViewer);
-        // find controller
-        self.findController.setDocument(self.pdf);
+        self.pdfViewer.setDocument(pdfDocument);
+        pdfLinkService.setDocument(pdfDocument, null);
+        // self.drawScaled(self.scale);
+        self.loading = false;
 
-        self.drawScaled(self.scale);
+        // return pdfDocument.getPage(self.page);
       })
-      .catch(err => self.$emit("error", err));
+      // .then(function(pdfPage) {
+      //   // Creating the page view with default parameters.
+      //   self.pdfViewer = new PDFPageView({
+      //     container: container,
+      //     id: self.page,
+      //     scale: 1,
+      //     defaultViewport: pdfPage.getViewport({ scale: 1 }),
+      //     eventBus: eventBus,
+      //     // We can enable text/annotations layers, if needed
+      //     textLayerFactory: textLayer,
+      //     annotationLayerFactory: annotationLayer
+      //   });
+      //   // Associates the actual page with the view, and drawing it
+      //   self.pdfViewer.setPdfPage(pdfPage);
+      //   pdfLinkService.setViewer(self.pdfViewer);
+      //   // find controller
+      //   self.findController.setDocument(self.pdf);
+
+      // })
+      .catch(err => {
+        self.$emit("error", err);
+        self.loading = false;
+      });
   },
   beforeDestroy() {
     var self = this;
     if (self.pdfViewer) {
-      self.pdfViewer.destroy();
+      try {
+        self.pdfViewer.destroy();
+      } catch (e) {
+        console.log(e);
+      }
       self.pdfViewer = null;
     }
   },
