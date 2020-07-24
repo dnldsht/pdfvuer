@@ -97,29 +97,25 @@ export default {
   data: function () {
     return {
       internalSrc: this.src,
-      pdf: null,
+
       pdfViewer: null,
       loading: true,
       findController: null,
     };
   },
   watch: {
-    pdf: function (val) {
-      var pdfInfo = val.pdfInfo || val._pdfInfo;
-      this.$emit("numpages", pdfInfo.numPages);
-    },
     page: function (val) {
       this.pdfViewer.currentPageNumber = val;
       this.$emit("update:page", this.pdfViewer.currentPageNumber);
     },
     scale: function (val) {
-      this.drawScaled(val);
+      // this.drawScaled(val);
     },
     rotate: function (newRotate) {
-      if (this.pdfViewer) {
-        this.pdfViewer.update(this.scale, newRotate);
-        this.pdfViewer.draw();
-      }
+      // if (this.pdfViewer) {
+      //   this.pdfViewer.update(this.scale, newRotate);
+      //   this.pdfViewer.draw();
+      // }
     },
   },
   mounted: function () {
@@ -127,7 +123,6 @@ export default {
     if (!isPDFDocumentLoadingTask(self.internalSrc)) {
       self.internalSrc = createLoadingTask(self.internalSrc);
       self.loading = true;
-      // self.$emit("loading", true);
     }
 
     var container = this.$refs.container;
