@@ -3,10 +3,19 @@
     <slot v-if="loading" name="loading" />
     <div id="viewerContainer" ref="container">
       <div id="viewer" class="pdfViewer" />
-      <resizeSensor :initial="true" @resize="resizeScale" />
+      <!-- <resizeSensor :initial="true" @resize="resizeScale" /> -->
     </div>
   </div>
 </template>
+<style >
+#viewerContainer {
+  overflow: auto;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+</style>
+
 <script>
 "use strict";
 
@@ -19,7 +28,7 @@ import {
   PDFPageView,
   PDFViewer,
   EventBus,
-  PDFFindController
+  PDFFindController,
 } from "pdfjs-dist/web/pdf_viewer.js";
 import resizeSensor from "vue-resize-sensor";
 
@@ -53,70 +62,67 @@ function createLoadingTask(src, options) {
 export default {
   createLoadingTask: createLoadingTask,
   components: {
-    resizeSensor
+    resizeSensor,
   },
   props: {
     src: {
       type: [String, Object, Promise],
-      default: ""
+      default: "",
     },
     page: {
       type: Number,
-      default: 1
+      default: 1,
     },
     rotate: {
       type: Number,
-      default: 0
+      default: 0,
     },
     scale: {
       type: [Number, String],
-      default: "page-width"
+      default: "page-width",
     },
     resize: {
       type: Boolean,
-      default: false
+      default: false,
     },
     annotation: {
       type: Boolean,
-      default: false
+      default: false,
     },
     text: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
-  data: function() {
+  data: function () {
     return {
       internalSrc: this.src,
       pdf: null,
       pdfViewer: null,
       loading: true,
-      findController: null
+      findController: null,
     };
   },
   watch: {
-    pdf: function(val) {
+    pdf: function (val) {
       var pdfInfo = val.pdfInfo || val._pdfInfo;
       this.$emit("numpages", pdfInfo.numPages);
     },
-    page: function(val) {
-      var self = this;
-      this.pdf.getPage(val).then(function(pdfPage) {
-        self.pdfViewer.setPdfPage(pdfPage);
-        self.pdfViewer.draw();
-      });
+    page: function (val) {
+      this.pdfViewer.currentPageNumber = val;
+      this.$emit("update:page", this.pdfViewer.currentPageNumber);
     },
-    scale: function(val) {
+    scale: function (val) {
       this.drawScaled(val);
     },
-    rotate: function(newRotate) {
+    rotate: function (newRotate) {
       if (this.pdfViewer) {
         this.pdfViewer.update(this.scale, newRotate);
         this.pdfViewer.draw();
       }
-    }
+    },
   },
-  mounted: function() {
+  mounted: function () {
     var self = this;
     if (!isPDFDocumentLoadingTask(self.internalSrc)) {
       self.internalSrc = createLoadingTask(self.internalSrc);
@@ -133,14 +139,14 @@ export default {
 
     self.findController = new PDFFindController({
       eventBus: eventBus,
-      linkService: pdfLinkService
+      linkService: pdfLinkService,
     });
 
     self.pdfViewer = new PDFViewer({
       container: container,
       eventBus: eventBus,
       linkService: pdfLinkService,
-      findController: self.findController
+      findController: self.findController,
     });
 
     pdfLinkService.setViewer(self.pdfViewer);
@@ -154,7 +160,7 @@ export default {
       textLayer = new DefaultTextLayerFactory();
     }
 
-    eventBus.on("pagesinit", function() {
+    eventBus.on("pagesinit", function () {
       // We can use pdfViewer now, e.g. let's change default scale.
       self.pdfViewer.currentScaleValue = "page-width";
 
@@ -165,53 +171,27 @@ export default {
     });
 
     self.internalSrc
-      .then(function(pdfDocument) {
+      .then(function (pdfDocument) {
         // Document loaded, retrieving the page.
         self.pdf = pdfDocument;
         self.pdfViewer.setDocument(pdfDocument);
         pdfLinkService.setDocument(pdfDocument, null);
-        // self.drawScaled(self.scale);
+
+        self.$emit("numpages", pdfDocument.numPages);
         self.loading = false;
-
-        // return pdfDocument.getPage(self.page);
       })
-      // .then(function(pdfPage) {
-      //   // Creating the page view with default parameters.
-      //   self.pdfViewer = new PDFPageView({
-      //     container: container,
-      //     id: self.page,
-      //     scale: 1,
-      //     defaultViewport: pdfPage.getViewport({ scale: 1 }),
-      //     eventBus: eventBus,
-      //     // We can enable text/annotations layers, if needed
-      //     textLayerFactory: textLayer,
-      //     annotationLayerFactory: annotationLayer
-      //   });
-      //   // Associates the actual page with the view, and drawing it
-      //   self.pdfViewer.setPdfPage(pdfPage);
-      //   pdfLinkService.setViewer(self.pdfViewer);
-      //   // find controller
-      //   self.findController.setDocument(self.pdf);
 
-      // })
-      .catch(err => {
+      .catch((err) => {
         self.$emit("error", err);
         self.loading = false;
       });
   },
   beforeDestroy() {
-    var self = this;
-    if (self.pdfViewer) {
-      try {
-        self.pdfViewer.destroy();
-      } catch (e) {
-        console.log(e);
-      }
-      self.pdfViewer = null;
-    }
+    if (this.internalSrc && this.internalSrc.loadingTask)
+      this.internalSrc.loadingTask.destroy();
   },
   methods: {
-    calculateScale: function(width = -1, height = -1) {
+    calculateScale: function (width = -1, height = -1) {
       this.pdfViewer.update(1, this.rotate); // Reset scaling to 1 so that "this.pdfViewer.viewport.width" gives proper width;
       if (width === -1 && height === -1) {
         width = this.$refs.container.offsetWidth;
@@ -219,7 +199,7 @@ export default {
 
       return width / this.pdfViewer.viewport.width;
     },
-    drawScaled: function(newScale) {
+    drawScaled: function (newScale) {
       if (this.pdfViewer) {
         if (newScale === "page-width") {
           newScale = this.calculateScale();
@@ -231,11 +211,11 @@ export default {
         this.$emit("loading", false);
       }
     },
-    resizeScale: function() {
+    resizeScale: function () {
       if (this.resize) {
         this.drawScaled("page-width");
       }
-    }
-  }
+    },
+  },
 };
 </script>
