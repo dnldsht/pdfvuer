@@ -4,7 +4,7 @@
   "version": "1.6.0",
   "author": "Gaurav Koley <arkokoley@live.in>",
   "license": "MIT",
-  "main": "./src/main.js",
+  "main": "./src/Pdfvuer.vue",
   "homepage": "https://github.com/arkokoley/pdfvuer#pdfvuer",
   "bugs": {
     "url": "https://github.com/arkokoley/pdfvuer/issues",
