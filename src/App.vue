@@ -1,18 +1,21 @@
 <template>
-  <div id="app">
+  <div id="app" ref="app">
     <div class="buttons">
       <button @click="page--">-</button>
-      {{page}}/{{pages}}
+      {{ page }}/{{ pages }}
       <button @click="page++">+</button>
       <input class="ml-auto" type="text" placeholder="Cerca" />
       <button @click="test">search</button>
+      <button @click="toggleFullScreen">
+        {{ fullScreen ? "no full" : "full" }}
+      </button>
     </div>
 
     <Pdf
-      @numpages="pages = $event"
-      :page.sync="page"
       ref="pdf"
+      :page.sync="page"
       src="https://backend.nuvolar.it/domains/71/contents/21727/pdf"
+      @numpages="pages = $event"
     />
   </div>
 </template>
@@ -48,6 +51,7 @@ export default {
   data: () => ({
     page: 1,
     pages: null,
+    fullScreen: false,
   }),
   methods: {
     test() {
@@ -56,6 +60,14 @@ export default {
         phraseSearch: true,
       });
       console.log(a);
+    },
+    toggleFullScreen() {
+      if (this.fullScreen) {
+        document.exitFullscreen();
+      } else {
+        this.$refs.app.requestFullscreen();
+      }
+      this.fullScreen = !this.fullScreen;
     },
   },
 };
