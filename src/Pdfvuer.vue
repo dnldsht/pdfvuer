@@ -155,6 +155,11 @@ export default {
       self.pdfViewer.currentScaleValue = self.scale;
     });
 
+    eventBus.on("pagechanging", function ({ pageNumber }) {
+      // We can use pdfViewer now, e.g. let's change default scale.
+      self.$emit("update:page", pageNumber);
+    });
+
     self.internalSrc
       .then(function (pdfDocument) {
         // Document loaded, retrieving the page.
