@@ -9,11 +9,22 @@
       <button @click="toggleFullScreen">
         {{ fullScreen ? "no full" : "full" }}
       </button>
+
+      <select v-model="scale">
+        <option value="page-width">page-width</option>
+        <option :value="0.3">0.3</option>
+        <option :value="1.3">1.3</option>
+      </select>
+
+      <button @click="zoomOut">zoomOut</button>
+
+      <button @click="zoomIn">zoomIn</button>
     </div>
 
     <Pdf
       ref="pdf"
       :page.sync="page"
+      :scale="scale"
       src="https://backend.nuvolar.it/domains/71/contents/21727/pdf"
       @numpages="pages = $event"
     />
@@ -52,8 +63,15 @@ export default {
     page: 1,
     pages: null,
     fullScreen: false,
+    scale: "page-width",
   }),
   methods: {
+    zoomOut() {
+      this.$refs.pdf.zoomOut(1);
+    },
+    zoomIn() {
+      this.$refs.pdf.zoomIn(1);
+    },
     test() {
       const a = this.$refs.pdf.pdfFindController.executeCommand("find", {
         query: "This section provides an overview of our system",
