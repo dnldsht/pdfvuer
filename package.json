@@ -22,8 +22,7 @@
     "core-js": "3",
     "pdfjs-dist": "2.3.200",
     "raw-loader": "^0.5.1",
-    "vue": "^2.6.11",
-    "vue-resize-sensor": "^2.0.0"
+    "vue": "^2.6.11"
   },
   "browserslist": [
     "> 1%",

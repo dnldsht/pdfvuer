@@ -3,7 +3,6 @@
     <slot v-if="loading" name="loading" />
     <div id="viewerContainer" ref="container">
       <div id="viewer" class="pdfViewer" />
-      <!-- <resizeSensor :initial="true" @resize="resizeScale" /> -->
     </div>
   </div>
 </template>
@@ -30,7 +29,6 @@ import {
   EventBus,
   PDFFindController,
 } from "pdfjs-dist/web/pdf_viewer.js";
-import resizeSensor from "vue-resize-sensor";
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 10.0;
@@ -66,9 +64,6 @@ function createLoadingTask(src, options) {
 
 export default {
   createLoadingTask: createLoadingTask,
-  components: {
-    resizeSensor,
-  },
   props: {
     src: {
       type: [String, Object, Promise],
@@ -78,17 +73,9 @@ export default {
       type: Number,
       default: 1,
     },
-    rotate: {
-      type: Number,
-      default: 0,
-    },
     scale: {
       type: [Number, String],
       default: DEFAULT_SCALE_VALUE,
-    },
-    resize: {
-      type: Boolean,
-      default: false,
     },
     annotation: {
       type: Boolean,
@@ -166,11 +153,6 @@ export default {
     eventBus.on("pagesinit", function () {
       // We can use pdfViewer now, e.g. let's change default scale.
       self.pdfViewer.currentScaleValue = self.scale;
-
-      // We can try searching for things.
-      // if (SEARCH_FOR) {
-      //   pdfFindController.executeCommand("find", { query: SEARCH_FOR });
-      // }
     });
 
     self.internalSrc
@@ -195,29 +177,11 @@ export default {
   },
   methods: {
     calculateScale: function (width = -1, height = -1) {
-      this.pdfViewer.update(1, this.rotate); // Reset scaling to 1 so that "this.pdfViewer.viewport.width" gives proper width;
       if (width === -1 && height === -1) {
         width = this.$refs.container.offsetWidth;
       }
 
       return width / this.pdfViewer.viewport.width;
-    },
-    drawScaled: function (newScale) {
-      if (this.pdfViewer) {
-        if (newScale === "page-width") {
-          newScale = this.calculateScale();
-          this.$emit("update:scale", newScale);
-        }
-        this.pdfViewer.update(newScale, this.rotate);
-        this.pdfViewer.draw();
-        this.loading = false;
-        this.$emit("loading", false);
-      }
-    },
-    resizeScale: function () {
-      if (this.resize) {
-        this.drawScaled("page-width");
-      }
     },
 
     zoomIn: function pdfViewZoomIn(ticks) {
