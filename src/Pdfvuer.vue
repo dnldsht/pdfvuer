@@ -32,6 +32,11 @@ import {
 } from "pdfjs-dist/web/pdf_viewer.js";
 import resizeSensor from "vue-resize-sensor";
 
+const MIN_SCALE = 0.25;
+const MAX_SCALE = 10.0;
+const DEFAULT_SCALE_DELTA = 1.1;
+const DEFAULT_SCALE_VALUE = "auto";
+
 function isPDFDocumentLoadingTask(obj) {
   return (
     typeof obj === "object" &&
@@ -79,7 +84,7 @@ export default {
     },
     scale: {
       type: [Number, String],
-      default: "page-width",
+      default: DEFAULT_SCALE_VALUE,
     },
     resize: {
       type: Boolean,
@@ -109,6 +114,9 @@ export default {
       this.$emit("update:page", this.pdfViewer.currentPageNumber);
     },
     scale: function (val) {
+      console.log(val);
+      this.pdfViewer.currentScaleValue = this.scale;
+      console.log(this.pdfViewer.currentScale);
       // this.drawScaled(val);
     },
     rotate: function (newRotate) {
@@ -157,7 +165,7 @@ export default {
 
     eventBus.on("pagesinit", function () {
       // We can use pdfViewer now, e.g. let's change default scale.
-      self.pdfViewer.currentScaleValue = "page-width";
+      self.pdfViewer.currentScaleValue = self.scale;
 
       // We can try searching for things.
       // if (SEARCH_FOR) {
@@ -210,6 +218,26 @@ export default {
       if (this.resize) {
         this.drawScaled("page-width");
       }
+    },
+
+    zoomIn: function pdfViewZoomIn(ticks) {
+      var newScale = this.pdfViewer.currentScale;
+      do {
+        newScale = (newScale * DEFAULT_SCALE_DELTA).toFixed(2);
+        newScale = Math.ceil(newScale * 10) / 10;
+        newScale = Math.min(MAX_SCALE, newScale);
+      } while (--ticks && newScale < MAX_SCALE);
+      this.pdfViewer.currentScaleValue = newScale;
+    },
+
+    zoomOut: function pdfViewZoomOut(ticks) {
+      var newScale = this.pdfViewer.currentScale;
+      do {
+        newScale = (newScale / DEFAULT_SCALE_DELTA).toFixed(2);
+        newScale = Math.floor(newScale * 10) / 10;
+        newScale = Math.max(MIN_SCALE, newScale);
+      } while (--ticks && newScale > MIN_SCALE);
+      this.pdfViewer.currentScaleValue = newScale;
     },
   },
 };
