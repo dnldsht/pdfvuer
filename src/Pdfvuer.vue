@@ -159,6 +159,9 @@ export default {
       // We can use pdfViewer now, e.g. let's change default scale.
       self.$emit("update:page", pageNumber);
     });
+    eventBus.on("pagesloaded", function () {
+      self.$emit("pagesloaded");
+    });
 
     self.internalSrc
       .then(function (pdfDocument) {
